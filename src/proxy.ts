@@ -1,6 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import type { CookieOptions } from "@supabase/ssr";
 
 // Define route access rules
 const routeConfig = {
@@ -76,7 +75,7 @@ function hasAccess(userRole: string, requiredRole: string): boolean {
   return userLevel >= requiredLevel;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -95,7 +94,7 @@ export async function middleware(request: NextRequest) {
           cookiesToSet: Array<{
             name: string;
             value: string;
-            options: CookieOptions;
+            options: object;
           }>,
         ) {
           cookiesToSet.forEach(({ name, value }) =>
