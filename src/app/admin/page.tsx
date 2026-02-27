@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { User, Department, Complaint } from "@/types/database";
 
 export default async function AdminDashboardPage() {
@@ -136,13 +137,13 @@ export default async function AdminDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow">
+      <header className="bg-card border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-2xl font-bold text-foreground">
                 Department Admin Dashboard
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
@@ -151,6 +152,7 @@ export default async function AdminDashboardPage() {
             </div>
             <div className="flex items-center gap-4">
               <Badge variant="outline">{profile.role.replace("_", " ")}</Badge>
+              <ThemeToggle />
               <SignOutButton />
             </div>
           </div>
@@ -226,7 +228,7 @@ export default async function AdminDashboardPage() {
                 {complaints.map((complaint) => (
                   <div
                     key={complaint.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex-1">
                       <h3 className="font-medium">{complaint.title}</h3>

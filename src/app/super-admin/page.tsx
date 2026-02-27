@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface ComplaintRow {
   id: string;
@@ -74,16 +75,16 @@ export default async function SuperAdminDashboard() {
   const recentComplaints = recentComplaintsData as ComplaintRow[] | null;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b">
+      <header className="bg-card border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-2xl font-bold text-foreground">
                 Super Admin Dashboard
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 Welcome back, {user.name}
               </p>
             </div>
@@ -94,6 +95,7 @@ export default async function SuperAdminDashboard() {
               >
                 Super Admin
               </Badge>
+              <ThemeToggle />
               <SignOutButton />
             </div>
           </div>
@@ -228,7 +230,7 @@ export default async function SuperAdminDashboard() {
                     departments.map((dept) => (
                       <div
                         key={dept.id}
-                        className="p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        className="p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         <p className="text-sm font-medium">{dept.name}</p>
                       </div>

@@ -4,6 +4,7 @@ import { getUser } from "@/lib/auth/utils";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   Card,
   CardContent,
@@ -25,10 +26,11 @@ import {
   FileX,
 } from "lucide-react";
 import type { Complaint, Department } from "@/types/database";
+import { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "My Complaints — ResolveX",
   description: "View and track all your submitted civic complaints.",
 };
@@ -168,9 +170,9 @@ export default async function ComplaintsPage({
   const totalCount = allComplaints?.length ?? 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <header className="bg-card border-b border-border">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -181,7 +183,7 @@ export default async function ComplaintsPage({
                 </Button>
               </Link>
               <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-xl font-bold text-foreground">
                   My Complaints
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -189,12 +191,15 @@ export default async function ComplaintsPage({
                 </p>
               </div>
             </div>
-            <Link href="/complaints/new">
-              <Button size="sm">
-                <Plus className="size-4" />
-                New Complaint
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Link href="/complaints/new">
+                <Button size="sm">
+                  <Plus className="size-4" />
+                  New Complaint
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -220,8 +225,8 @@ export default async function ComplaintsPage({
                     inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors
                     ${
                       isActive
-                        ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                        : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                        ? "bg-foreground text-background"
+                        : "bg-card text-muted-foreground border border-border hover:bg-muted/50"
                     }
                   `}
                 >
@@ -232,8 +237,8 @@ export default async function ComplaintsPage({
                         text-xs px-1.5 py-0.5 rounded-full font-semibold
                         ${
                           isActive
-                            ? "bg-white/20 text-white dark:bg-black/20 dark:text-gray-900"
-                            : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                            ? "bg-background/20 text-background"
+                            : "bg-muted text-muted-foreground"
                         }
                       `}
                     >
@@ -250,11 +255,11 @@ export default async function ComplaintsPage({
         {complaints.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16 gap-4">
-              <div className="p-4 rounded-full bg-gray-100 dark:bg-gray-800">
+              <div className="p-4 rounded-full bg-muted">
                 <FileX className="size-8 text-muted-foreground" />
               </div>
               <div className="text-center">
-                <p className="font-semibold text-gray-900 dark:text-white">
+                <p className="font-semibold text-foreground">
                   {activeFilter === "all"
                     ? "No complaints yet"
                     : `No ${activeFilter.replace("_", " ")} complaints`}
@@ -303,7 +308,7 @@ export default async function ComplaintsPage({
                       {/* Location */}
                       <span className="flex items-center gap-1.5">
                         <MapPin className="size-3.5 shrink-0" />
-                        <span className="truncate max-w-[200px]">
+                        <span className="truncate max-w-50">
                           {complaint.municipal_ward
                             ? `${complaint.municipal_ward}, `
                             : ""}

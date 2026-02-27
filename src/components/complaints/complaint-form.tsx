@@ -462,7 +462,7 @@ export function ComplaintForm() {
           type="submit"
           disabled={isSubmitting}
           size="lg"
-          className="min-w-[160px]"
+          className="min-w-40"
         >
           {isSubmitting ? (
             <>

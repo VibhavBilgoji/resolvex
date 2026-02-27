@@ -72,7 +72,7 @@ function ErrorContent() {
       </CardHeader>
       <CardContent>
         {error && (
-          <div className="rounded-md bg-gray-100 dark:bg-gray-800 p-3 text-center">
+          <div className="rounded-md bg-muted p-3 text-center">
             <code className="text-sm text-muted-foreground">
               Error code: {error}
             </code>
@@ -97,8 +97,8 @@ function ErrorContentFallback() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-          <div className="animate-spin h-6 w-6 border-2 border-gray-400 border-t-transparent rounded-full" />
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+          <div className="animate-spin h-6 w-6 border-2 border-muted-foreground border-t-transparent rounded-full" />
         </div>
         <CardTitle className="text-xl font-semibold">Loading...</CardTitle>
       </CardHeader>
@@ -108,7 +108,7 @@ function ErrorContentFallback() {
 
 export default function AuthErrorPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <React.Suspense fallback={<ErrorContentFallback />}>
         <ErrorContent />
       </React.Suspense>

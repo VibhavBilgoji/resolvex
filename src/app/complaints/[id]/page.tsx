@@ -4,6 +4,7 @@ import { getUser } from "@/lib/auth/utils";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   Card,
   CardContent,
@@ -93,7 +94,7 @@ function InfoRow({
       <span className="mt-0.5 text-muted-foreground shrink-0">{icon}</span>
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground">{label}</p>
-        <div className="text-sm font-medium text-gray-900 dark:text-white break-words">
+        <div className="text-sm font-medium text-foreground wrap-break-word">
           {value}
         </div>
       </div>
@@ -167,36 +168,39 @@ export default async function ComplaintDetailPage({
     complaint.translated_text;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <header className="bg-card border-b border-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-start gap-4">
-            <Link href="/complaints">
-              <Button variant="ghost" size="sm" className="mt-0.5">
-                <ArrowLeft className="size-4" />
-                My Complaints
-              </Button>
-            </Link>
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white truncate">
-                  {complaint.title}
-                </h1>
-                <div className="flex items-center gap-1.5">
-                  <StatusIcon status={complaint.status} />
-                  <Badge className={statusBadgeClass(complaint.status)}>
-                    {complaint.status.replace("_", " ")}
-                  </Badge>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4 min-w-0">
+              <Link href="/complaints">
+                <Button variant="ghost" size="sm" className="mt-0.5">
+                  <ArrowLeft className="size-4" />
+                  My Complaints
+                </Button>
+              </Link>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <h1 className="text-xl font-bold text-foreground truncate">
+                    {complaint.title}
+                  </h1>
+                  <div className="flex items-center gap-1.5">
+                    <StatusIcon status={complaint.status} />
+                    <Badge className={statusBadgeClass(complaint.status)}>
+                      {complaint.status.replace("_", " ")}
+                    </Badge>
+                  </div>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Complaint ID:{" "}
+                  <span className="font-mono text-muted-foreground select-all">
+                    {complaint.id}
+                  </span>
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Complaint ID:{" "}
-                <span className="font-mono text-gray-600 dark:text-gray-400 select-all">
-                  {complaint.id}
-                </span>
-              </p>
             </div>
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -229,7 +233,7 @@ export default async function ComplaintDetailPage({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-800 dark:text-gray-200">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">
                   {complaint.original_text}
                 </p>
 
@@ -241,7 +245,7 @@ export default async function ComplaintDetailPage({
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                           AI Translation (English)
                         </p>
-                        <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                        <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
                           {complaint.translated_text}
                         </p>
                       </div>
@@ -264,7 +268,7 @@ export default async function ComplaintDetailPage({
                   <img
                     src={complaint.image_url}
                     alt="Complaint evidence"
-                    className="w-full max-h-80 object-contain rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+                    className="w-full max-h-80 object-contain rounded-lg border border-border bg-muted"
                   />
                 </CardContent>
               </Card>
@@ -288,7 +292,7 @@ export default async function ComplaintDetailPage({
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm leading-relaxed text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                  <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
                     {resolution.resolution_text}
                   </p>
                 </CardContent>
