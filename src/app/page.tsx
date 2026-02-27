@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { getUser } from "@/lib/auth/utils";
+import { getDashboardPath } from "@/lib/auth/utils";
 
 const features = [
   {
@@ -50,7 +53,13 @@ const steps = [
   { step: "04", title: "Resolution Logged", description: "The resolution is embedded into the AI's memory to help future citizens faster." },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const user = await getUser();
+
+  if (user) {
+    redirect(getDashboardPath(user.role));
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
 
@@ -67,10 +76,10 @@ export default function Home() {
           </nav>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/login">Sign In</Link>
+              <Link href="/auth/login">Sign In</Link>
             </Button>
             <Button size="sm" asChild>
-              <Link href="/register">Get Started</Link>
+              <Link href="/auth/signup">Get Started</Link>
             </Button>
           </div>
         </div>
@@ -92,10 +101,10 @@ export default function Home() {
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button size="lg" asChild>
-            <Link href="/register">File a Complaint</Link>
+            <Link href="/auth/signup">File a Complaint</Link>
           </Button>
           <Button size="lg" variant="outline" asChild>
-            <Link href="/login">Track Your Complaint</Link>
+            <Link href="/auth/login">Track Your Complaint</Link>
           </Button>
         </div>
       </section>
@@ -178,7 +187,7 @@ export default function Home() {
               with the power of AI.
             </p>
             <Button size="lg" asChild>
-              <Link href="/register">Get Started — it&apos;s free</Link>
+              <Link href="/auth/signup">Get Started — it&apos;s free</Link>
             </Button>
           </CardContent>
         </Card>
@@ -189,8 +198,8 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <span>© 2025 ResolveX. Smart Citizen Grievance Redressal System.</span>
           <div className="flex gap-4">
-            <Link href="/login" className="hover:text-foreground transition-colors">Sign In</Link>
-            <Link href="/register" className="hover:text-foreground transition-colors">Register</Link>
+            <Link href="/auth/login" className="hover:text-foreground transition-colors">Sign In</Link>
+            <Link href="/auth/signup" className="hover:text-foreground transition-colors">Register</Link>
           </div>
         </div>
       </footer>
