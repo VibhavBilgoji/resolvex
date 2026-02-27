@@ -1,0 +1,34 @@
+# Smart Citizen Grievance Redressal System - Implementation Tasks
+
+## Phase 1: Project Initialization & Setup
+- [ ] Initialize Next.js project (App Router, TypeScript, Tailwind CSS)
+- [ ] Install and configure Tailark UI components
+- [ ] Set up Supabase project, initialize tables, and enable the `pgvector` extension
+- [ ] Configure environment variables
+
+## Phase 2: Authentication, Roles & Security (RLS)
+- [ ] Implement Supabase Auth (Email/Password or OAuth)
+- [ ] Set up Supabase RLS policies (Citizens, Dept Admins, Super Admins)
+- [ ] Create Role-based middleware to protect Next.js routes
+
+## Phase 3: Core Submission Flow (Citizen View)
+- [ ] Build the Complaint Form UI
+- [ ] Implement Hybrid Location Strategy (Locate Me, Landmark, Pincode)
+- [ ] Implement image upload to Supabase Storage
+- [ ] Create Next.js Server Action to submit the form data
+
+## Phase 4: AI Brain & RAG Integration
+- [ ] Set up LangChain & Gemini API utility functions
+- [ ] Build the Routing Engine (Translation, Location Intelligence)
+- [ ] Build the Routing Engine (Contextual Retrieval via RAG)
+- [ ] Build the Routing Engine (Categorization & Routing)
+
+## Phase 5: Admin Dashboards & Resolution Loop
+- [ ] Department Admin UI (filter by dept id and municipal ward)
+- [ ] Admin action to update status and write Resolution Note
+- [ ] The Learning Loop (embed resolution text into pgvector)
+- [ ] Super Admin UI (metrics, usage, AI confidence)
+
+## Phase 6: Polish and Delivery
+- [ ] Add loading states, error handling, toast notifications
+- [ ] Final review of edge cases
