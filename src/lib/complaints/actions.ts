@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getUser } from "@/lib/auth/utils";
+import { runRoutingPipeline } from "@/lib/ai/pipeline";
 
 export type ComplaintActionResult = {
   error?: string;
@@ -125,6 +126,24 @@ export async function submitComplaint(
 
   revalidatePath("/dashboard");
   revalidatePath("/complaints");
+
+  // Run the AI routing pipeline synchronously before redirecting.
+  // This is more reliable than fire-and-forget fetch in Next.js Server Actions,
+  // where the execution context can be torn down before an unawaited fetch completes.
+  try {
+    console.log(`[submitComplaint] Starting AI pipeline for complaint ${complaintId}`);
+    await runRoutingPipeline({
+      complaintId,
+      originalText: original_text,
+      addressLandmark: address_landmark,
+      pincode: pincode!,
+    });
+    console.log(`[submitComplaint] AI pipeline completed for complaint ${complaintId}`);
+  } catch (err) {
+    // Pipeline failure must never block the user redirect — the complaint is
+    // already saved; AI fields will remain null and can be retried later.
+    console.error("[submitComplaint] AI pipeline error (non-fatal):", err);
+  }
 
   redirect(`/complaints/${complaintId}?submitted=true`);
 }

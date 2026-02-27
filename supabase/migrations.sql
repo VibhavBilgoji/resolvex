@@ -303,7 +303,43 @@ CREATE POLICY "resolutions_all_super_admin"
     USING (get_my_role() = 'system_super_admin');
 
 -- ============================================================
--- 8. SEED DATA — Default Departments
+-- 8. VECTOR SIMILARITY SEARCH FUNCTION (RAG)
+-- ============================================================
+
+-- match_resolutions: returns the top-k most similar past resolutions
+-- using cosine similarity against the resolution_embedding column.
+-- Called by the AI pipeline (Step 3: Contextual Retrieval).
+CREATE OR REPLACE FUNCTION match_resolutions(
+    query_embedding  vector(768),
+    match_threshold  float,
+    match_count      int
+)
+RETURNS TABLE (
+    id               UUID,
+    complaint_id     UUID,
+    resolution_text  TEXT,
+    similarity       float
+)
+LANGUAGE sql STABLE
+AS $$
+    SELECT
+        r.id,
+        r.complaint_id,
+        r.resolution_text,
+        1 - (r.resolution_embedding <=> query_embedding) AS similarity
+    FROM resolutions r
+    WHERE r.resolution_embedding IS NOT NULL
+      AND 1 - (r.resolution_embedding <=> query_embedding) > match_threshold
+    ORDER BY r.resolution_embedding <=> query_embedding
+    LIMIT match_count;
+$$;
+
+-- Grant execute permission to authenticated users and service role
+GRANT EXECUTE ON FUNCTION match_resolutions TO authenticated;
+GRANT EXECUTE ON FUNCTION match_resolutions TO service_role;
+
+-- ============================================================
+-- 9. SEED DATA — Default Departments
 -- ============================================================
 
 INSERT INTO departments (name, description) VALUES

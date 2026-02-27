@@ -208,10 +208,10 @@ export default async function ComplaintDetailPage({
             <CheckCircle2 className="size-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-green-800 dark:text-green-300">
-                Complaint submitted successfully!
+                Complaint submitted and routed successfully!
               </p>
               <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">
-                Our AI is processing your complaint in the background — it will be routed to the right department shortly.
+                Our AI has analysed your complaint and assigned it to the right department. You can see the routing details below.
               </p>
             </div>
           </div>
@@ -391,7 +391,7 @@ export default async function ComplaintDetailPage({
                 {!isAiProcessed && (
                   <CardDescription className="flex items-center gap-1.5">
                     <Clock className="size-3" />
-                    Processing in background…
+                    Routing unavailable
                   </CardDescription>
                 )}
               </CardHeader>
@@ -431,7 +431,7 @@ export default async function ComplaintDetailPage({
                   )}
                 {!isAiProcessed && (
                   <p className="text-xs text-muted-foreground">
-                    AI routing details will appear here once processing is complete.
+                    AI routing could not be completed for this complaint.
                   </p>
                 )}
               </CardContent>
