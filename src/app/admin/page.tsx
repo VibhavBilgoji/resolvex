@@ -111,7 +111,7 @@ export default async function AdminDashboardPage() {
         <div className="px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-sm font-semibold text-foreground truncate">
-              Resolvex
+              ResolveX
             </span>
             <span className="text-border/60 select-none">·</span>
             <span className="text-sm text-muted-foreground truncate">
