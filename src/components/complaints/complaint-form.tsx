@@ -453,7 +453,21 @@ export function ComplaintForm() {
         )}
       </div>
 
-      {/* ── Submit ── */}
+      {/* ── AI processing note + Submit ── */}
+      {isSubmitting && (
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+          <Loader2 className="size-4 text-blue-600 dark:text-blue-400 animate-spin shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">
+              AI is routing your complaint…
+            </p>
+            <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
+              Gemini is translating your description, detecting your municipal ward, and assigning the right department. This usually takes 5–15 seconds. Please don&apos;t close or refresh the page.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
         <p className="text-xs text-muted-foreground mr-auto">
           <span className="text-red-500">*</span> Required fields
@@ -467,7 +481,7 @@ export function ComplaintForm() {
           {isSubmitting ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              Submitting…
+              Processing…
             </>
           ) : (
             "Submit Complaint"

@@ -123,9 +123,21 @@ export async function proxy(request: NextRequest) {
 
   // If the route is public, allow access
   if (requiredRole === null) {
-    // If user is logged in and trying to access auth pages, redirect to dashboard
+    // If user is logged in and trying to access auth pages, redirect to their
+    // role-appropriate dashboard instead of always going to /dashboard.
     if (user && (pathname === "/auth/login" || pathname === "/auth/signup")) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      const { data: userData } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      const userRole = (userData?.role as string) ?? "citizen";
+      let dashboardPath = "/dashboard";
+      if (userRole === "system_super_admin") dashboardPath = "/super-admin";
+      else if (userRole === "department_admin") dashboardPath = "/admin";
+
+      return NextResponse.redirect(new URL(dashboardPath, request.url));
     }
     return response;
   }
