@@ -226,37 +226,41 @@ export default async function AdminDashboardPage() {
             {complaints.length > 0 ? (
               <div className="space-y-4">
                 {complaints.map((complaint) => (
-                  <div
+                  <Link
                     key={complaint.id}
-                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                    href={`/admin/complaints/${complaint.id}`}
+                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors group"
                   >
-                    <div className="flex-1">
-                      <h3 className="font-medium">{complaint.title}</h3>
-                      <p className="text-sm text-muted-foreground line-clamp-1">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate group-hover:text-primary transition-colors">
+                        {complaint.title}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">
                         {complaint.translated_text || complaint.original_text}
                       </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge className={getStatusColor(complaint.status)}>
-                          {complaint.status.replace("_", " ")}
-                        </Badge>
-                        {complaint.priority && (
-                          <Badge
-                            className={getPriorityColor(complaint.priority)}
-                          >
-                            {complaint.priority}
-                          </Badge>
-                        )}
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(complaint.created_at).toLocaleDateString()}
+                      <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+                        {complaint.category && <span>{complaint.category}</span>}
+                        <span>•</span>
+                        <span>
+                          {new Date(complaint.created_at).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
                         </span>
                       </div>
                     </div>
-                    <Link href={`/admin/complaints/${complaint.id}`}>
-                      <Button variant="ghost" size="sm">
-                        View
-                      </Button>
-                    </Link>
-                  </div>
+                    <div className="flex items-center gap-1.5 shrink-0 ml-4">
+                      {complaint.priority && (
+                        <Badge className={getPriorityColor(complaint.priority)}>
+                          {complaint.priority}
+                        </Badge>
+                      )}
+                      <Badge className={getStatusColor(complaint.status)}>
+                        {complaint.status.replace("_", " ")}
+                      </Badge>
+                    </div>
+                  </Link>
                 ))}
               </div>
             ) : (

@@ -215,18 +215,16 @@ export default async function DashboardPage() {
             {complaints && complaints.length > 0 ? (
               <div className="space-y-4">
                 {complaints.map((complaint) => (
-                  <div
+                  <Link
                     key={complaint.id}
-                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                    href={`/complaints/${complaint.id}`}
+                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors group"
                   >
-                    <div className="space-y-1">
-                      <Link
-                        href={`/complaints/${complaint.id}`}
-                        className="font-medium hover:underline"
-                      >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate group-hover:text-primary transition-colors">
                         {complaint.title}
-                      </Link>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
                         {complaint.category && (
                           <span>{complaint.category}</span>
                         )}
@@ -234,18 +232,20 @@ export default async function DashboardPage() {
                           departmentMap[complaint.department_id] && (
                             <>
                               <span>•</span>
-                              <span>
-                                {departmentMap[complaint.department_id]}
-                              </span>
+                              <span>{departmentMap[complaint.department_id]}</span>
                             </>
                           )}
                         <span>•</span>
                         <span>
-                          {new Date(complaint.created_at).toLocaleDateString()}
+                          {new Date(complaint.created_at).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0 ml-4">
                       {complaint.priority && (
                         <Badge className={getPriorityColor(complaint.priority)}>
                           {complaint.priority}
@@ -255,7 +255,7 @@ export default async function DashboardPage() {
                         {complaint.status.replace("_", " ")}
                       </Badge>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (

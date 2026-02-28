@@ -569,19 +569,15 @@ export default async function SuperAdminDashboard() {
                 ) : (
                   <div className="divide-y divide-border">
                     {recentComplaints.map((complaint) => (
-                      <div key={complaint.id} className="p-4 space-y-1.5">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-medium line-clamp-1 flex-1">
+                      <Link
+                        key={complaint.id}
+                        href={`/admin/complaints/${complaint.id}`}
+                        className="block p-4 space-y-1.5 hover:bg-muted/50 transition-colors group"
+                      >
+                        <div className="flex items-start gap-2">
+                          <p className="text-sm font-medium line-clamp-1 flex-1 group-hover:text-primary transition-colors">
                             {complaint.title}
                           </p>
-                          <Link
-                            href={`/admin/complaints/${complaint.id}`}
-                            className="shrink-0"
-                          >
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                              <ExternalLink className="size-3" />
-                            </Button>
-                          </Link>
                         </div>
                         <div className="flex flex-wrap items-center gap-1.5">
                           <Badge
@@ -620,7 +616,7 @@ export default async function SuperAdminDashboard() {
                             },
                           )}
                         </p>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}

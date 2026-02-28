@@ -351,85 +351,81 @@ export default async function AdminComplaintsPage({
         ) : (
           <div className="space-y-3">
             {complaints.map((complaint) => (
-              <Card
+              <Link
                 key={complaint.id}
-                className="hover:shadow-md transition-shadow"
+                href={`/admin/complaints/${complaint.id}`}
+                className="block group"
               >
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base truncate">
-                        {complaint.title}
-                      </CardTitle>
-                      <CardDescription className="mt-1 line-clamp-2 text-sm">
-                        {complaint.translated_text ?? complaint.original_text}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <StatusIcon status={complaint.status} />
-                      <Badge className={statusBadgeClass(complaint.status)}>
-                        {complaint.status.replace("_", " ")}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                    {complaint.municipal_ward && (
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="size-3.5 shrink-0" />
-                        {complaint.municipal_ward}
-                      </span>
-                    )}
-                    {complaint.pincode && !complaint.municipal_ward && (
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="size-3.5 shrink-0" />
-                        Pincode {complaint.pincode}
-                      </span>
-                    )}
-                    {complaint.category && (
-                      <span className="flex items-center gap-1.5">
-                        <Tag className="size-3.5 shrink-0" />
-                        {complaint.category}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1.5 ml-auto">
-                      <CalendarDays className="size-3.5 shrink-0" />
-                      {new Date(complaint.created_at).toLocaleDateString(
-                        "en-IN",
-                        { day: "numeric", month: "short", year: "numeric" },
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {complaint.priority && (
-                        <Badge
-                          className={priorityBadgeClass(complaint.priority)}
-                        >
-                          {complaint.priority} priority
+                <Card className="hover:shadow-md transition-shadow group-hover:border-border/80">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base truncate group-hover:text-primary transition-colors">
+                          {complaint.title}
+                        </CardTitle>
+                        <CardDescription className="mt-1 line-clamp-1 text-sm">
+                          {complaint.translated_text ?? complaint.original_text}
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <StatusIcon status={complaint.status} />
+                        <Badge className={statusBadgeClass(complaint.status)}>
+                          {complaint.status.replace("_", " ")}
                         </Badge>
-                      )}
-                      {complaint.ai_confidence_score !== null &&
-                        complaint.ai_confidence_score !== undefined && (
-                          <span className="text-xs text-muted-foreground">
-                            AI confidence:{" "}
-                            {Math.round(
-                              (complaint.ai_confidence_score ?? 0) * 100,
-                            )}
-                            %
-                          </span>
-                        )}
+                      </div>
                     </div>
-                    <Link href={`/admin/complaints/${complaint.id}`}>
-                      <Button variant="outline" size="sm">
-                        Manage
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                      {complaint.municipal_ward && (
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="size-3.5 shrink-0" />
+                          {complaint.municipal_ward}
+                        </span>
+                      )}
+                      {complaint.pincode && !complaint.municipal_ward && (
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="size-3.5 shrink-0" />
+                          Pincode {complaint.pincode}
+                        </span>
+                      )}
+                      {complaint.category && (
+                        <span className="flex items-center gap-1.5">
+                          <Tag className="size-3.5 shrink-0" />
+                          {complaint.category}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1.5 ml-auto">
+                        <CalendarDays className="size-3.5 shrink-0" />
+                        {new Date(complaint.created_at).toLocaleDateString(
+                          "en-IN",
+                          { day: "numeric", month: "short", year: "numeric" },
+                        )}
+                      </span>
+                    </div>
+
+                    {(complaint.priority || complaint.ai_confidence_score !== null) && (
+                      <div className="mt-3 flex items-center gap-2">
+                        {complaint.priority && (
+                          <Badge className={priorityBadgeClass(complaint.priority)}>
+                            {complaint.priority} priority
+                          </Badge>
+                        )}
+                        {complaint.ai_confidence_score !== null &&
+                          complaint.ai_confidence_score !== undefined && (
+                            <span className="text-xs text-muted-foreground">
+                              AI confidence:{" "}
+                              {Math.round(
+                                (complaint.ai_confidence_score ?? 0) * 100,
+                              )}
+                              %
+                            </span>
+                          )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         )}
