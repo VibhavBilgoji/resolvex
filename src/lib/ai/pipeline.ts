@@ -1,6 +1,11 @@
 import { HumanMessage } from "@langchain/core/messages";
-import { createGeminiLLM, createGeminiEmbeddings, parseJsonFromLLMResponse } from "./gemini";
+import {
+  createGeminiLLM,
+  createGeminiEmbeddings,
+  parseJsonFromLLMResponse,
+} from "./gemini";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { runSummarizePipeline } from "./summarize";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,7 +36,9 @@ interface RagContext {
  * Detects the language of `original_text` and translates it to English.
  * If the text is already in English, translated_text == original_text.
  */
-async function translateToEnglish(originalText: string): Promise<TranslationResult> {
+async function translateToEnglish(
+  originalText: string,
+): Promise<TranslationResult> {
   const llm = createGeminiLLM();
 
   const prompt = `You are a translation assistant. Detect the language of the following text and translate it to English.
@@ -49,9 +56,10 @@ Respond ONLY with a valid JSON object in this exact format (no markdown fences):
 }`;
 
   const response = await llm.invoke([new HumanMessage(prompt)]);
-  const raw = typeof response.content === "string"
-    ? response.content
-    : JSON.stringify(response.content);
+  const raw =
+    typeof response.content === "string"
+      ? response.content
+      : JSON.stringify(response.content);
 
   return parseJsonFromLLMResponse<TranslationResult>(raw);
 }
@@ -80,9 +88,10 @@ Respond ONLY with a valid JSON object in this exact format (no markdown fences):
 If you cannot determine it with reasonable confidence, return your best inference based on the pincode and address. Always return a value.`;
 
   const response = await llm.invoke([new HumanMessage(prompt)]);
-  const raw = typeof response.content === "string"
-    ? response.content
-    : JSON.stringify(response.content);
+  const raw =
+    typeof response.content === "string"
+      ? response.content
+      : JSON.stringify(response.content);
 
   return parseJsonFromLLMResponse<LocationResult>(raw);
 }
@@ -93,7 +102,9 @@ If you cannot determine it with reasonable confidence, return your best inferenc
  * Embeds the translated complaint text and performs a cosine similarity search
  * against the resolutions table to retrieve the top-k most relevant past resolutions.
  */
-async function retrieveRagContext(translatedText: string): Promise<RagContext[]> {
+async function retrieveRagContext(
+  translatedText: string,
+): Promise<RagContext[]> {
   const embeddings = createGeminiEmbeddings();
   const adminClient = createAdminClient();
 
@@ -137,7 +148,10 @@ async function categorizeAndRoute(
   const llm = createGeminiLLM();
 
   const departmentList = departments
-    .map((d) => `- id: "${d.id}", name: "${d.name}"${d.description ? `, description: "${d.description}"` : ""}`)
+    .map(
+      (d) =>
+        `- id: "${d.id}", name: "${d.name}"${d.description ? `, description: "${d.description}"` : ""}`,
+    )
     .join("\n");
 
   const ragSection =
@@ -184,9 +198,10 @@ Respond ONLY with a valid JSON object in this exact format (no markdown fences):
 }`;
 
   const response = await llm.invoke([new HumanMessage(prompt)]);
-  const raw = typeof response.content === "string"
-    ? response.content
-    : JSON.stringify(response.content);
+  const raw =
+    typeof response.content === "string"
+      ? response.content
+      : JSON.stringify(response.content);
 
   return parseJsonFromLLMResponse<RoutingResult>(raw);
 }
@@ -218,7 +233,9 @@ export interface PipelineResult {
  *   4. Categorize and route to the correct department
  *   5. Update the complaints row in Postgres with all AI-determined values
  */
-export async function runRoutingPipeline(input: PipelineInput): Promise<PipelineResult> {
+export async function runRoutingPipeline(
+  input: PipelineInput,
+): Promise<PipelineResult> {
   const adminClient = createAdminClient();
 
   // ── Fetch departments list (needed for routing step) ──────────────────────
@@ -228,7 +245,9 @@ export async function runRoutingPipeline(input: PipelineInput): Promise<Pipeline
     .select("id, name, description");
 
   if (deptError || !departments || departments.length === 0) {
-    throw new Error(`Failed to fetch departments: ${deptError?.message ?? "empty result"}`);
+    throw new Error(
+      `Failed to fetch departments: ${deptError?.message ?? "empty result"}`,
+    );
   }
 
   // ── Step 1: Translation ───────────────────────────────────────────────────
@@ -247,7 +266,10 @@ export async function runRoutingPipeline(input: PipelineInput): Promise<Pipeline
   // ── Step 2: Location Intelligence ────────────────────────────────────────
   let locationResult: LocationResult;
   try {
-    locationResult = await extractMunicipalWard(input.addressLandmark, input.pincode);
+    locationResult = await extractMunicipalWard(
+      input.addressLandmark,
+      input.pincode,
+    );
   } catch (err) {
     console.error("[Pipeline] Location extraction failed:", err);
     locationResult = { municipal_ward: `Pincode ${input.pincode} area` };
@@ -268,7 +290,11 @@ export async function runRoutingPipeline(input: PipelineInput): Promise<Pipeline
       translationResult.translated_text,
       locationResult.municipal_ward,
       ragContext,
-      departments as Array<{ id: string; name: string; description: string | null }>,
+      departments as Array<{
+        id: string;
+        name: string;
+        description: string | null;
+      }>,
     );
   } catch (err) {
     console.error("[Pipeline] Routing failed:", err);
@@ -281,7 +307,7 @@ export async function runRoutingPipeline(input: PipelineInput): Promise<Pipeline
     };
   }
 
-  // ── Step 5: Persist AI results to Postgres ────────────────────────────────
+  // ── Step 5: Persist AI routing results to Postgres ───────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: updateError } = await (adminClient as any)
     .from("complaints")
@@ -297,8 +323,34 @@ export async function runRoutingPipeline(input: PipelineInput): Promise<Pipeline
     .eq("id", input.complaintId);
 
   if (updateError) {
-    throw new Error(`Failed to update complaint with AI results: ${(updateError as { message: string }).message}`);
+    throw new Error(
+      `Failed to update complaint with AI results: ${(updateError as { message: string }).message}`,
+    );
   }
+
+  // ── Step 6: AI Summary (structured field extraction) ─────────────────────
+  // Look up the resolved department name so the summary has human-readable context.
+  const matchedDept = (
+    departments as Array<{
+      id: string;
+      name: string;
+      description: string | null;
+    }>
+  ).find((d) => d.id === routingResult.department_id);
+
+  // Fire-and-forget — summary failure must never block the pipeline result.
+  runSummarizePipeline({
+    complaintId: input.complaintId,
+    complaintText: translationResult.translated_text,
+    addressLandmark: input.addressLandmark,
+    pincode: input.pincode,
+    municipalWard: locationResult.municipal_ward,
+    category: routingResult.category,
+    priority: routingResult.priority,
+    departmentName: matchedDept?.name ?? null,
+  }).catch((err) => {
+    console.warn("[Pipeline] Summarize step failed (non-fatal):", err);
+  });
 
   return {
     translated_text: translationResult.translated_text,

@@ -29,6 +29,8 @@ import {
   User2,
 } from "lucide-react";
 import { AdminResolutionForm } from "@/components/admin/resolution-form";
+import { AISummaryCard } from "@/components/admin/AISummaryCard";
+import { ResolutionPlanCard } from "@/components/admin/ResolutionPlanCard";
 import type { Complaint, Department, Resolution, User } from "@/types/database";
 
 export const dynamic = "force-dynamic";
@@ -154,15 +156,21 @@ export default async function AdminComplaintDetailPage({
   }
 
   // ── Fetch related data ─────────────────────────────────────────────────────
+  // All departments (for routing correction selector)
+  const { data: allDeptsRaw } = await adminClient
+    .from("departments")
+    .select("id, name")
+    .order("name");
+  const allDepartments = (allDeptsRaw ?? []) as Pick<
+    Department,
+    "id" | "name"
+  >[];
+
   // Department name
   let department: Pick<Department, "id" | "name"> | null = null;
   if (complaint.department_id) {
-    const { data: deptData } = await adminClient
-      .from("departments")
-      .select("id, name")
-      .eq("id", complaint.department_id)
-      .single();
-    if (deptData) department = deptData as Pick<Department, "id" | "name">;
+    department =
+      allDepartments.find((d) => d.id === complaint.department_id) ?? null;
   }
 
   // Citizen name
@@ -248,6 +256,15 @@ export default async function AdminComplaintDetailPage({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* ── Left column: complaint content ────────────────────────────── */}
           <div className="lg:col-span-2 space-y-6">
+            {/* AI Summary (if available) */}
+            {complaint.ai_summary && (
+              <AISummaryCard summary={complaint.ai_summary} />
+            )}
+
+            {/* AI Resolution Plan (admin-only, on-demand) */}
+            {!isResolved && complaint.status !== "rejected" && (
+              <ResolutionPlanCard complaintId={complaint.id} />
+            )}
             {/* Description */}
             <Card>
               <CardHeader>
@@ -330,6 +347,8 @@ export default async function AdminComplaintDetailPage({
               <AdminResolutionForm
                 complaintId={complaint.id}
                 currentStatus={complaint.status}
+                departments={allDepartments}
+                currentDepartmentId={complaint.department_id}
               />
             )}
 

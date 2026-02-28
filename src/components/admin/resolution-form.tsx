@@ -19,25 +19,34 @@ import {
   AlertTriangle,
   Loader2,
   RefreshCw,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import {
   updateComplaintStatus,
   resolveComplaint,
 } from "@/lib/resolutions/actions";
-import type { ComplaintStatus } from "@/types/database";
+import type { ComplaintStatus, Department } from "@/types/database";
 
 interface AdminResolutionFormProps {
   complaintId: string;
   currentStatus: ComplaintStatus;
   allowReopen?: boolean;
+  /** Departments list for routing correction selector */
+  departments?: Pick<Department, "id" | "name">[];
+  /** The department currently assigned by AI (to pre-fill the selector) */
+  currentDepartmentId?: string | null;
 }
 
 type ActionMode = "status" | "resolve" | "reject" | "reopen" | null;
+type RoutingVerdict = "correct" | "incorrect" | null;
 
 export function AdminResolutionForm({
   complaintId,
   currentStatus,
   allowReopen = false,
+  departments = [],
+  currentDepartmentId = null,
 }: AdminResolutionFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -47,11 +56,19 @@ export function AdminResolutionForm({
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Routing feedback state
+  const [routingVerdict, setRoutingVerdict] = useState<RoutingVerdict>(null);
+  const [correctedDeptId, setCorrectedDeptId] = useState<string>(
+    currentDepartmentId ?? "",
+  );
+
   function reset() {
     setMode(null);
     setResolutionText("");
     setError(null);
     setSuccessMsg(null);
+    setRoutingVerdict(null);
+    setCorrectedDeptId(currentDepartmentId ?? "");
   }
 
   async function handleStatusChange(
@@ -65,9 +82,7 @@ export function AdminResolutionForm({
       if (result.error) {
         setError(result.error);
       } else {
-        setSuccessMsg(
-          `Status updated to "${newStatus.replace("_", " ")}".`,
-        );
+        setSuccessMsg(`Status updated to "${newStatus.replace("_", " ")}".`);
         setMode(null);
         router.refresh();
       }
@@ -84,7 +99,22 @@ export function AdminResolutionForm({
     }
 
     startTransition(async () => {
-      const result = await resolveComplaint(complaintId, resolutionText);
+      const feedback =
+        routingVerdict !== null
+          ? {
+              wasCorrect: routingVerdict === "correct",
+              correctedDepartmentId:
+                routingVerdict === "incorrect" && correctedDeptId
+                  ? correctedDeptId
+                  : null,
+            }
+          : undefined;
+
+      const result = await resolveComplaint(
+        complaintId,
+        resolutionText,
+        feedback,
+      );
       if (result.error) {
         setError(result.error);
       } else {
@@ -255,6 +285,7 @@ export function AdminResolutionForm({
         {/* ── Mode: resolve panel ──────────────────────────────────────────── */}
         {mode === "resolve" && (
           <div className="space-y-4 pt-2 border-t border-border">
+            {/* Resolution text */}
             <div className="space-y-1.5">
               <Label htmlFor="resolution-text" className="text-sm font-medium">
                 Resolution Note{" "}
@@ -277,6 +308,80 @@ export function AdminResolutionForm({
                   ? `${20 - resolutionText.trim().length} more needed`
                   : "ready to submit"}
               </p>
+            </div>
+
+            {/* ── Routing feedback ─────────────────────────────────────────── */}
+            <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-3">
+              <div>
+                <p className="text-xs font-semibold text-foreground uppercase tracking-wide mb-0.5">
+                  AI Routing Feedback
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Help improve future routing accuracy by confirming whether the
+                  AI assigned this complaint to the right department.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={routingVerdict === "correct" ? "default" : "outline"}
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => setRoutingVerdict("correct")}
+                  className={
+                    routingVerdict === "correct"
+                      ? "bg-green-600 hover:bg-green-700 text-white border-0"
+                      : "border-green-200 text-green-700 dark:border-green-800 dark:text-green-400"
+                  }
+                >
+                  <ThumbsUp className="size-3.5" />
+                  Routing was correct
+                </Button>
+                <Button
+                  type="button"
+                  variant={
+                    routingVerdict === "incorrect" ? "default" : "outline"
+                  }
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => setRoutingVerdict("incorrect")}
+                  className={
+                    routingVerdict === "incorrect"
+                      ? "bg-red-600 hover:bg-red-700 text-white border-0"
+                      : "border-red-200 text-red-700 dark:border-red-800 dark:text-red-400"
+                  }
+                >
+                  <ThumbsDown className="size-3.5" />
+                  Routing was wrong
+                </Button>
+              </div>
+
+              {/* Department correction selector */}
+              {routingVerdict === "incorrect" && departments.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="corrected-dept"
+                    className="text-xs font-medium text-foreground"
+                  >
+                    Which department should have handled this?
+                  </Label>
+                  <select
+                    id="corrected-dept"
+                    value={correctedDeptId}
+                    onChange={(e) => setCorrectedDeptId(e.target.value)}
+                    disabled={isPending}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">— Select correct department —</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">
