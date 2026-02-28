@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "6mb",
     },
   },
+  serverExternalPackages: ["@supabase/ssr"],
 };
 
 export default nextConfig;
