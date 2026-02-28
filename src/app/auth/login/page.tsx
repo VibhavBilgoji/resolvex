@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Home } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,6 @@ function LoginForm() {
   const supabase = createClient();
 
   async function getRoleBasedDestination(): Promise<string> {
-    // If a specific redirect was requested (e.g. from middleware), honour it.
     if (redirectTo) return redirectTo;
 
     const {
@@ -329,6 +329,19 @@ function LoginFormFallback() {
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="absolute top-4 left-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-9"
+          aria-label="Return to home"
+          asChild
+        >
+          <Link href="/">
+            <Home className="size-4" />
+          </Link>
+        </Button>
+      </div>
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>

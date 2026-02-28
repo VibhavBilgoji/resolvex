@@ -3,6 +3,8 @@
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Home } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   Card,
   CardContent,
@@ -109,6 +111,22 @@ function ErrorContentFallback() {
 export default function AuthErrorPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="absolute top-4 left-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-9"
+          aria-label="Return to home"
+          asChild
+        >
+          <Link href="/">
+            <Home className="size-4" />
+          </Link>
+        </Button>
+      </div>
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <React.Suspense fallback={<ErrorContentFallback />}>
         <ErrorContent />
       </React.Suspense>
