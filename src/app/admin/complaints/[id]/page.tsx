@@ -209,7 +209,7 @@ export default async function AdminComplaintDetailPage({
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-card border-b border-border shadow-sm">
+      <header className="bg-background/80 backdrop-blur-md border-b border-border/60 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4 min-w-0">

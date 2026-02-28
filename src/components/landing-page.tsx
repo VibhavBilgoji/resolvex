@@ -103,7 +103,7 @@ export default function LandingPage() {
       <div className="relative z-10">
 
         {/* ━━━━━ NAV ━━━━━ */}
-        <header className="border-b border-border/60 bg-background/80 backdrop-blur-md sticky top-0 z-50">
+        <header className="border-b border-border bg-card sticky top-0 z-50">
           <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-xl font-bold tracking-tight">ResolveX</span>
