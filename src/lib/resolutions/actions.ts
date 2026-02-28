@@ -7,6 +7,7 @@ import { getUser } from "@/lib/auth/utils";
 export type ResolutionActionResult = {
   error?: string;
   success?: boolean;
+  resolutionId?: string;
 };
 
 // ─── Update complaint status only (e.g. open → in_progress) ──────────────────
@@ -61,6 +62,12 @@ export async function updateComplaintStatus(
 export async function resolveComplaint(
   complaintId: string,
   resolutionText: string,
+  routingFeedback?: {
+    /** Did the AI correctly route this complaint to the right department? */
+    wasCorrect: boolean;
+    /** If the admin manually changed the department, record the corrected one */
+    correctedDepartmentId?: string | null;
+  },
 ): Promise<ResolutionActionResult> {
   const user = await getUser();
   if (!user) return { error: "Unauthorised." };
@@ -98,6 +105,10 @@ export async function resolveComplaint(
       complaint_id: complaintId,
       resolved_by: user.id,
       resolution_text: text,
+      routing_was_correct:
+        routingFeedback !== undefined ? routingFeedback.wasCorrect : null,
+      admin_corrected_department_id:
+        routingFeedback?.correctedDepartmentId ?? null,
     })
     .select("id")
     .single();
@@ -108,6 +119,21 @@ export async function resolveComplaint(
   }
 
   const resolutionId = (resolution as { id: string }).id;
+
+  // If admin corrected the department, update the complaint's department_id too
+  if (
+    routingFeedback &&
+    !routingFeedback.wasCorrect &&
+    routingFeedback.correctedDepartmentId
+  ) {
+    await adminClient
+      .from("complaints")
+      .update({
+        department_id: routingFeedback.correctedDepartmentId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", complaintId);
+  }
 
   // Update complaint status to resolved
   const { error: updateErr } = await adminClient
@@ -127,8 +153,7 @@ export async function resolveComplaint(
   // We use a fire-and-forget fetch to the internal API route so the server action
   // returns immediately without waiting for the Gemini embedding call.
   try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
     // Intentionally NOT awaited — fire-and-forget
     fetch(`${baseUrl}/api/resolutions/${resolutionId}/embed`, {
@@ -147,5 +172,5 @@ export async function resolveComplaint(
   revalidatePath("/admin");
   revalidatePath("/admin/complaints");
 
-  return { success: true };
+  return { success: true, resolutionId };
 }

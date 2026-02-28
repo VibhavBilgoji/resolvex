@@ -26,8 +26,27 @@ import {
   TrendingUp,
   Brain,
   Activity,
+  ThumbsUp,
+  ThumbsDown,
+  ArrowRight,
+  Target,
 } from "lucide-react";
 import type { Department } from "@/types/database";
+
+// ─── Routing accuracy types ───────────────────────────────────────────────────
+
+interface RoutingAccuracyRow {
+  resolution_id: string;
+  complaint_id: string;
+  routing_was_correct: boolean;
+  admin_corrected_department_id: string | null;
+  resolved_at: string;
+  category: string | null;
+  priority: string | null;
+  ai_confidence_score: number | null;
+  ai_assigned_department: string | null;
+  corrected_department: string | null;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -129,6 +148,40 @@ function ConfidenceBar({ value }: { value: number | null }) {
   );
 }
 
+/**
+ * Thin horizontal bar showing a 0–100 accuracy percentage.
+ * Colour: green ≥ 80, yellow ≥ 60, red below 60.
+ */
+function AccuracyBar({ pct }: { pct: number }) {
+  const color =
+    pct >= 80 ? "bg-green-500" : pct >= 60 ? "bg-yellow-500" : "bg-red-500";
+  return (
+    <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+      <div
+        className={`h-full rounded-full transition-all ${color}`}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+/**
+ * Large ring / percentage display for the overall routing accuracy KPI card.
+ */
+function AccuracyRing({ pct }: { pct: number }) {
+  const textColor =
+    pct >= 80
+      ? "text-green-600 dark:text-green-400"
+      : pct >= 60
+        ? "text-yellow-600 dark:text-yellow-400"
+        : "text-red-600 dark:text-red-400";
+  return (
+    <span className={`text-4xl font-bold tabular-nums ${textColor}`}>
+      {pct}%
+    </span>
+  );
+}
+
 export default async function SuperAdminDashboard() {
   const user = await getUser();
 
@@ -151,6 +204,7 @@ export default async function SuperAdminDashboard() {
     { data: usersData },
     { data: aiComplaintsData },
     { data: allComplaintsForDeptData },
+    { data: routingAccuracyData },
   ] = await Promise.all([
     adminClient.from("complaints").select("*", { count: "exact", head: true }),
     adminClient
@@ -193,11 +247,66 @@ export default async function SuperAdminDashboard() {
     adminClient
       .from("complaints")
       .select("department_id, status, ai_confidence_score"),
+    // Routing accuracy — from the view created by ai_enhancements_migration.sql
+    adminClient
+      .from("routing_accuracy_summary")
+      .select("*")
+      .order("resolved_at", { ascending: false }),
   ]);
 
   const departments = (departmentsData ?? []) as Department[];
   const recentComplaints = (recentComplaintsData ?? []) as ComplaintRow[];
   const users = (usersData ?? []) as UserRow[];
+  const routingAccuracyRows = (routingAccuracyData ??
+    []) as RoutingAccuracyRow[];
+
+  // ── Routing accuracy metrics ───────────────────────────────────────────────
+  const totalWithFeedback = routingAccuracyRows.length;
+  const routingCorrectCount = routingAccuracyRows.filter(
+    (r) => r.routing_was_correct,
+  ).length;
+  const routingIncorrectCount = totalWithFeedback - routingCorrectCount;
+  const routingAccuracyPct =
+    totalWithFeedback > 0
+      ? Math.round((routingCorrectCount / totalWithFeedback) * 100)
+      : null;
+
+  // Top correction patterns: AI routed to X, admin corrected to Y
+  const correctionsTally: Record<string, number> = {};
+  for (const row of routingAccuracyRows.filter(
+    (r) => !r.routing_was_correct && r.corrected_department,
+  )) {
+    const from = row.ai_assigned_department ?? "Unknown";
+    const to = row.corrected_department ?? "Unknown";
+    const key = `${from}|||${to}`;
+    correctionsTally[key] = (correctionsTally[key] ?? 0) + 1;
+  }
+  const topCorrections = Object.entries(correctionsTally)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([key, count]) => {
+      const [from_department, to_department] = key.split("|||");
+      return { from_department, to_department, count };
+    });
+
+  // Per-category accuracy
+  const categoryAccMap: Record<string, { total: number; correct: number }> = {};
+  for (const row of routingAccuracyRows) {
+    const cat = row.category ?? "Uncategorised";
+    if (!categoryAccMap[cat]) categoryAccMap[cat] = { total: 0, correct: 0 };
+    categoryAccMap[cat].total += 1;
+    if (row.routing_was_correct) categoryAccMap[cat].correct += 1;
+  }
+  const categoryAccuracy = Object.entries(categoryAccMap)
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 8)
+    .map(([category, stats]) => ({
+      category,
+      total: stats.total,
+      correct: stats.correct,
+      pct:
+        stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
+    }));
 
   // ── AI confidence metrics ──────────────────────────────────────────────────
   const aiScores = (
@@ -487,7 +596,202 @@ export default async function SuperAdminDashboard() {
           </div>
         </section>
 
-        {/* ── Section 3: Per-department breakdown + Recent Complaints ───── */}
+        {/* ── Section 3: Routing Accuracy (Feedback Loop) ──────────────── */}
+        <section>
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Target className="size-5 text-muted-foreground" />
+            AI Routing Accuracy{" "}
+            <span className="text-sm font-normal text-muted-foreground">
+              — based on admin feedback
+            </span>
+          </h2>
+
+          {totalWithFeedback === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-10 gap-2 text-center">
+                <Target className="size-8 text-muted-foreground/40" />
+                <p className="text-sm font-medium text-muted-foreground">
+                  No routing feedback yet
+                </p>
+                <p className="text-xs text-muted-foreground max-w-sm">
+                  When admins resolve complaints and confirm whether the AI
+                  routed them correctly, accuracy data will appear here.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left: KPI cards */}
+              <div className="space-y-4">
+                {/* Overall accuracy */}
+                <Card
+                  className={
+                    routingAccuracyPct !== null && routingAccuracyPct >= 80
+                      ? "border-green-200 dark:border-green-800"
+                      : routingAccuracyPct !== null && routingAccuracyPct >= 60
+                        ? "border-yellow-200 dark:border-yellow-800"
+                        : "border-red-200 dark:border-red-800"
+                  }
+                >
+                  <CardHeader className="pb-2">
+                    <CardDescription>Overall Routing Accuracy</CardDescription>
+                    <CardTitle className="flex items-baseline gap-2">
+                      {routingAccuracyPct !== null ? (
+                        <AccuracyRing pct={routingAccuracyPct} />
+                      ) : (
+                        <span className="text-3xl font-bold text-muted-foreground">
+                          —
+                        </span>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {routingAccuracyPct !== null && (
+                      <AccuracyBar pct={routingAccuracyPct} />
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      from {totalWithFeedback} admin-reviewed resolution
+                      {totalWithFeedback !== 1 ? "s" : ""}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Correct / Incorrect split */}
+                <div className="grid grid-cols-2 gap-3">
+                  <Card>
+                    <CardHeader className="pb-1 pt-4 px-4">
+                      <CardDescription className="text-xs flex items-center gap-1">
+                        <ThumbsUp className="size-3 text-green-600" />
+                        Correct
+                      </CardDescription>
+                      <CardTitle className="text-2xl text-green-600">
+                        {routingCorrectCount}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-4 px-4">
+                      <p className="text-xs text-muted-foreground">
+                        routings confirmed
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-1 pt-4 px-4">
+                      <CardDescription className="text-xs flex items-center gap-1">
+                        <ThumbsDown className="size-3 text-red-600" />
+                        Wrong
+                      </CardDescription>
+                      <CardTitle className="text-2xl text-red-600">
+                        {routingIncorrectCount}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-4 px-4">
+                      <p className="text-xs text-muted-foreground">
+                        mis-routings found
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Middle: Top corrections */}
+              <div>
+                <Card className="h-full">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <ArrowRight className="size-4 text-muted-foreground" />
+                      Top Mis-routing Patterns
+                    </CardTitle>
+                    <CardDescription>
+                      Complaints the AI sent to the wrong department
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {topCorrections.length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-4 text-center">
+                        No mis-routings with corrections recorded yet.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {topCorrections.map((c, i) => (
+                          <div
+                            key={i}
+                            className="flex items-start gap-2 text-xs"
+                          >
+                            <span className="shrink-0 mt-0.5 size-4 rounded-full bg-muted text-muted-foreground flex items-center justify-center font-bold text-[10px]">
+                              {c.count}
+                            </span>
+                            <div className="flex-1 flex items-center gap-1.5 flex-wrap">
+                              <span className="font-medium text-foreground truncate max-w-30">
+                                {c.from_department}
+                              </span>
+                              <ArrowRight className="size-3 text-muted-foreground shrink-0" />
+                              <span className="font-medium text-primary truncate max-w-30">
+                                {c.to_department}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Right: Per-category accuracy */}
+              <div>
+                <Card className="h-full">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <BarChart3 className="size-4 text-muted-foreground" />
+                      Accuracy by Category
+                    </CardTitle>
+                    <CardDescription>
+                      How accurately each complaint type is routed
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {categoryAccuracy.length === 0 ? (
+                      <p className="text-xs text-muted-foreground py-4 text-center">
+                        No category data yet.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {categoryAccuracy.map((cat) => (
+                          <div key={cat.category} className="space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-medium text-foreground truncate">
+                                {cat.category}
+                              </p>
+                              <span
+                                className={`text-xs font-semibold tabular-nums shrink-0 ${
+                                  cat.pct >= 80
+                                    ? "text-green-600"
+                                    : cat.pct >= 60
+                                      ? "text-yellow-600"
+                                      : "text-red-600"
+                                }`}
+                              >
+                                {cat.pct}%
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <AccuracyBar pct={cat.pct} />
+                              <span className="text-[10px] text-muted-foreground shrink-0">
+                                {cat.correct}/{cat.total}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* ── Section 4: Per-department breakdown + Recent Complaints ───── */}
         <section className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Department performance table */}
           <div className="lg:col-span-3">
@@ -620,7 +924,7 @@ export default async function SuperAdminDashboard() {
           </div>
         </section>
 
-        {/* ── Section 4: User Management ──────────────────────────────────── */}
+        {/* ── Section 5: User Management ──────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -701,7 +1005,7 @@ export default async function SuperAdminDashboard() {
           </Card>
         </section>
 
-        {/* ── Section 5: Quick links ─────────────────────────────────────── */}
+        {/* ── Section 6: Quick links ─────────────────────────────────────── */}
         <section>
           <Separator className="mb-6" />
           <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
