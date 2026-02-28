@@ -28,9 +28,32 @@ function LoginForm() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const redirectTo = searchParams.get("redirect") || null;
 
   const supabase = createClient();
+
+  async function getRoleBasedDestination(): Promise<string> {
+    // If a specific redirect was requested (e.g. from middleware), honour it.
+    if (redirectTo) return redirectTo;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return "/dashboard";
+
+    const { data: profile } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const role = (profile as { role: string } | null)?.role;
+
+    if (role === "system_super_admin") return "/super-admin";
+    if (role === "department_admin") return "/admin";
+    return "/dashboard";
+  }
 
   const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -48,7 +71,8 @@ function LoginForm() {
       }
 
       toast.success("Logged in successfully!");
-      router.push(redirectTo);
+      const destination = await getRoleBasedDestination();
+      router.push(destination);
       router.refresh();
     } catch (error) {
       toast.error("An unexpected error occurred");
@@ -65,7 +89,7 @@ function LoginForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
+          redirectTo: `${window.location.origin}/auth/callback${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`,
         },
       });
 
