@@ -6,7 +6,7 @@ export default function NewComplaintLoading() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Skeleton className="h-9 w-20 rounded-md" />
@@ -21,7 +21,7 @@ export default function NewComplaintLoading() {
       </header>
 
       {/* Form skeleton */}
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-card rounded-xl border border-border shadow-sm p-6 sm:p-8 space-y-8">
 
           {/* Section 1: Complaint Details */}

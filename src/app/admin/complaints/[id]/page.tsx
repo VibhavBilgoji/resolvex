@@ -210,7 +210,7 @@ export default async function AdminComplaintDetailPage({
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4 min-w-0">
               <Link href="/admin/complaints">
@@ -244,7 +244,7 @@ export default async function AdminComplaintDetailPage({
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* ── Left column: complaint content ────────────────────────────── */}
           <div className="lg:col-span-2 space-y-6">
