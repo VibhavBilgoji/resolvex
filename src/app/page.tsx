@@ -198,7 +198,7 @@ export default async function Home() {
       {/* Footer */}
       <footer className="border-t">
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <span>© 2025 ResolveX. Smart Citizen Grievance Redressal System.</span>
+          <span>© {new Date().getFullYear()} ResolveX. Smart Citizen Grievance Redressal System.</span>
           <div className="flex gap-4">
             <Link href="/auth/login" className="hover:text-foreground transition-colors">Sign In</Link>
             <Link href="/auth/signup" className="hover:text-foreground transition-colors">Register</Link>
