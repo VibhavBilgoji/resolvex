@@ -191,6 +191,10 @@ export default function NearbyIssuesMap({
   // Cached SDK module so marker/style effects don't re-import on every render
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sdkRef = useRef<any>(null);
+  // Synchronous guard: prevents a second async init from starting while the
+  // first one is still awaiting the SDK import or the map "load" event.
+  // Using a ref (not state) so the check is synchronous and race-free.
+  const initializingRef = useRef(false);
 
   // ── Theme ─────────────────────────────────────────────────────────────────
   const { resolvedTheme } = useTheme();
@@ -205,6 +209,9 @@ export default function NearbyIssuesMap({
   const [errorMsg, setErrorMsg] = useState("");
   const [complaints, setComplaints] = useState<MapComplaint[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  // Flipped to true once the map canvas has fired its "load" event and the
+  // map instance is fully ready to accept sources, layers and markers.
+  const [mapReady, setMapReady] = useState(false);
 
   // ── Fetch from /api/complaints/nearby ─────────────────────────────────────
   const fetchComplaints = useCallback(async () => {
@@ -286,11 +293,22 @@ export default function NearbyIssuesMap({
   useEffect(() => {
     if (phase !== "ready") return;
     if (!mapContainerRef.current) return;
-    if (mapRef.current) return; // guard: do not re-create
+    // Synchronous guards prevent a second concurrent init (React StrictMode
+    // runs effects twice; the async IIFE means mapRef.current is not yet set
+    // when the second run starts, so we need an extra flag).
+    if (mapRef.current || initializingRef.current) return;
+
+    initializingRef.current = true;
+    // cancelled is flipped by the cleanup function so that if the component
+    // unmounts while we are awaiting the SDK import or the map "load" event
+    // we discard the partially-built map rather than attaching it to a
+    // detached DOM node.
+    let cancelled = false;
 
     (async () => {
       // Dynamic import keeps MapLibre GL JS out of the SSR bundle entirely
       const sdk = await import("@maptiler/sdk");
+      if (cancelled) return;
       sdkRef.current = sdk;
 
       const { Map, Marker, Popup, MapStyle, config } = sdk;
@@ -303,7 +321,11 @@ export default function NearbyIssuesMap({
         ? [loc.lng, loc.lat]
         : [78.9629, 20.5937]; // geographic centre of India as fallback
 
-      const isDark = resolvedTheme === "dark";
+      // Snapshot theme at init time; live theme changes are handled by the
+      // dedicated theme-switch effect below so we don't re-run this effect.
+      const isDark =
+        document.documentElement.classList.contains("dark") ||
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
 
       const map = new Map({
         container: mapContainerRef.current!,
@@ -321,6 +343,13 @@ export default function NearbyIssuesMap({
           map.once("load", () => resolve());
         }
       });
+
+      // If the component unmounted while we were waiting for the map to load,
+      // clean it up immediately and bail out.
+      if (cancelled) {
+        map.remove();
+        return;
+      }
 
       // User location marker (blue dot)
       if (loc) {
@@ -350,8 +379,17 @@ export default function NearbyIssuesMap({
       }
 
       mapRef.current = map;
+      initializingRef.current = false;
+      // Signal the marker-sync effect that the map is ready to receive markers.
+      setMapReady(true);
     })();
-  }, [phase, mode, resolvedTheme]);
+
+    return () => {
+      // Flip the cancellation flag so the IIFE discards any in-flight work.
+      cancelled = true;
+      initializingRef.current = false;
+    };
+  }, [phase, mode]);
 
   // ── Theme switching — update map style when the OS/user theme changes ─────
   useEffect(() => {
@@ -375,8 +413,13 @@ export default function NearbyIssuesMap({
     }
   }, [resolvedTheme, mode]);
 
-  // ── Step 4 — Sync complaint markers when `complaints` changes ─────────────
+  // ── Step 4 — Sync complaint markers when `complaints` or `mapReady` changes
   useEffect(() => {
+    // Wait until the map has fully initialized before touching markers.
+    // By including mapReady in the dep array, this effect re-runs once the
+    // async init effect flips setMapReady(true), so markers that arrived via
+    // the initial fetch are not silently dropped.
+    if (!mapReady) return;
     const map = mapRef.current;
     const sdk = sdkRef.current;
     if (!map || !sdk) return;
@@ -405,25 +448,24 @@ export default function NearbyIssuesMap({
         (c.priority === "critical" || c.priority === "high");
 
       if (markersRef.current.has(c.id)) {
-        // Update existing marker's visual + popup content without removing it
+        // Update existing marker's visual + popup content without removing it.
+        // We mutate the *existing* DOM element's innerHTML rather than
+        // replacing it, so we never need to touch the private `_element` field
+        // on the Marker and the original mouseenter/mouseleave listeners
+        // (which close over the same existingEl reference) keep working.
         const existing = markersRef.current.get(c.id)!;
         const existingPopup = popupsRef.current.get(c.id);
-        const newEl = buildMarkerEl(color, pulse);
 
-        // Re-attach hover listeners to the replacement element
+        // Refresh the SVG inside the marker element
+        const existingEl = existing.getElement() as HTMLElement;
+        const tempEl = buildMarkerEl(color, pulse);
+        existingEl.innerHTML = tempEl.innerHTML;
+        existingEl.style.cssText = tempEl.style.cssText;
+
+        // Refresh the popup's HTML content
         if (existingPopup) {
           existingPopup.setHTML(buildPopupHtml(c));
-          newEl.addEventListener("mouseenter", () => {
-            if (!existingPopup.isOpen()) existingPopup.addTo(map);
-          });
-          newEl.addEventListener("mouseleave", () => {
-            if (existingPopup.isOpen()) existingPopup.remove();
-          });
         }
-
-        existing.getElement().replaceWith(newEl);
-        // Re-register the element so future updates can find it
-        existing._element = newEl;
       } else {
         const el = buildMarkerEl(color, pulse);
 
@@ -467,7 +509,7 @@ export default function NearbyIssuesMap({
       complaints.forEach((c) => bounds.extend([c.longitude, c.latitude]));
       map.fitBounds(bounds, { padding: 48, maxZoom: 14 });
     }
-  }, [complaints, mode]);
+  }, [complaints, mode, mapReady]);
 
   // ── Supabase Realtime subscription ────────────────────────────────────────
   useEffect(() => {

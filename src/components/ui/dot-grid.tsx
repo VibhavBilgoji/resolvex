@@ -1,16 +1,7 @@
 "use client";
 
-import {
-  useRef,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
+import { useRef, useEffect, useCallback, useMemo } from "react";
 import { useTheme } from "next-themes";
-import { gsap } from "gsap";
-import { InertiaPlugin } from "gsap/InertiaPlugin";
-
-gsap.registerPlugin(InertiaPlugin);
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -26,7 +17,7 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 
 function throttle<T extends (...args: Parameters<T>) => void>(
   func: T,
-  limit: number
+  limit: number,
 ): T {
   let lastCall = 0;
   return function (this: unknown, ...args: Parameters<T>) {
@@ -38,14 +29,33 @@ function throttle<T extends (...args: Parameters<T>) => void>(
   } as T;
 }
 
+// ─── Spring physics ──────────────────────────────────────────────────────────
+//
+// Each dot is a simple damped harmonic oscillator:
+//   a = -stiffness * displacement - damping * velocity
+//
+// We integrate with a fixed timestep (dt = 16 ms) so the simulation is
+// frame-rate independent and requires no external animation library.
+
+const SPRING_STIFFNESS = 180; // "spring constant" — how quickly it snaps back
+const SPRING_DAMPING = 22; // friction — prevents ringing
+const FIXED_DT = 0.016; // seconds per integration step (≈ 60 fps)
+const REST_THRESHOLD = 0.01; // px — treat as at-rest below this magnitude
+
 // ─── types ───────────────────────────────────────────────────────────────────
 
 interface Dot {
+  /** Grid centre (never changes after build) */
   cx: number;
   cy: number;
+  /** Current displacement from centre */
   xOffset: number;
   yOffset: number;
-  _inertiaApplied: boolean;
+  /** Current velocity (px / s) */
+  vx: number;
+  vy: number;
+  /** True while the spring is still moving */
+  active: boolean;
 }
 
 interface PointerState {
@@ -74,6 +84,7 @@ export interface DotGridProps {
   shockRadius?: number;
   shockStrength?: number;
   maxSpeed?: number;
+  /** Not used for physics any more, kept for API compatibility */
   resistance?: number;
   returnDuration?: number;
   className?: string;
@@ -93,8 +104,10 @@ export function DotGrid({
   shockRadius = 250,
   shockStrength = 5,
   maxSpeed = 5000,
-  resistance = 750,
-  returnDuration = 1.5,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  resistance: _resistance = 750,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  returnDuration: _returnDuration = 1.5,
   className = "",
   style,
 }: DotGridProps) {
@@ -172,14 +185,46 @@ export function DotGrid({
           cy: startY + r * cell,
           xOffset: 0,
           yOffset: 0,
-          _inertiaApplied: false,
+          vx: 0,
+          vy: 0,
+          active: false,
         });
       }
     }
     dotsRef.current = dots;
   }, [dotSize, gap]);
 
-  // ── Draw loop ─────────────────────────────────────────────────────────────
+  // ── Spring integration ────────────────────────────────────────────────────
+  //
+  // Called once per animation frame for every "active" dot.
+  // Returns true if the dot is still in motion after the step.
+
+  const stepSpring = useCallback((dot: Dot): boolean => {
+    // F = -k*x - c*v  (Hooke's law + damping)
+    const ax = -SPRING_STIFFNESS * dot.xOffset - SPRING_DAMPING * dot.vx;
+    const ay = -SPRING_STIFFNESS * dot.yOffset - SPRING_DAMPING * dot.vy;
+
+    dot.vx += ax * FIXED_DT;
+    dot.vy += ay * FIXED_DT;
+    dot.xOffset += dot.vx * FIXED_DT;
+    dot.yOffset += dot.vy * FIXED_DT;
+
+    const moving =
+      Math.abs(dot.xOffset) > REST_THRESHOLD ||
+      Math.abs(dot.yOffset) > REST_THRESHOLD ||
+      Math.abs(dot.vx) > REST_THRESHOLD ||
+      Math.abs(dot.vy) > REST_THRESHOLD;
+
+    if (!moving) {
+      dot.xOffset = 0;
+      dot.yOffset = 0;
+      dot.vx = 0;
+      dot.vy = 0;
+    }
+    return moving;
+  }, []);
+
+  // ── Draw + physics loop ───────────────────────────────────────────────────
 
   useEffect(() => {
     if (!circlePath) return;
@@ -198,6 +243,11 @@ export function DotGrid({
       const { x: px, y: py } = pointerRef.current;
 
       for (const dot of dotsRef.current) {
+        // Advance spring physics for active dots
+        if (dot.active) {
+          dot.active = stepSpring(dot);
+        }
+
         const ox = dot.cx + dot.xOffset;
         const oy = dot.cy + dot.yOffset;
         const dx = dot.cx - px;
@@ -228,7 +278,7 @@ export function DotGrid({
 
     draw();
     return () => cancelAnimationFrame(rafId);
-  }, [proximity, resolvedBase, baseRgb, activeRgb, circlePath]);
+  }, [proximity, resolvedBase, baseRgb, activeRgb, circlePath, stepSpring]);
 
   // ── Grid build + resize ───────────────────────────────────────────────────
 
@@ -257,6 +307,28 @@ export function DotGrid({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Kick a dot: give it an initial velocity/displacement derived from the
+    // pointer's velocity vector, then let the spring bring it back.
+    const kickDot = (
+      dot: Dot,
+      pushX: number,
+      pushY: number,
+      impulseScale: number,
+    ) => {
+      // Clamp push magnitude to avoid extreme displacements
+      const mag = Math.hypot(pushX, pushY);
+      const maxPush = 60;
+      const scale =
+        mag > maxPush ? (maxPush / mag) * impulseScale : impulseScale;
+
+      dot.xOffset += pushX * scale;
+      dot.yOffset += pushY * scale;
+      // Give it the pointer's velocity as initial spring velocity (dampened)
+      dot.vx = pushX * scale * 4;
+      dot.vy = pushY * scale * 4;
+      dot.active = true;
+    };
+
     const onMove = (e: MouseEvent) => {
       const now = performance.now();
       const pr = pointerRef.current;
@@ -269,9 +341,9 @@ export function DotGrid({
       let speed = Math.hypot(vx, vy);
 
       if (speed > maxSpeed) {
-        const scale = maxSpeed / speed;
-        vx *= scale;
-        vy *= scale;
+        const s = maxSpeed / speed;
+        vx *= s;
+        vy *= s;
         speed = maxSpeed;
       }
 
@@ -286,27 +358,17 @@ export function DotGrid({
       pr.x = e.clientX - rect.left;
       pr.y = e.clientY - rect.top;
 
+      if (speed <= speedTrigger) return;
+
       for (const dot of dotsRef.current) {
         const dist = Math.hypot(dot.cx - pr.x, dot.cy - pr.y);
-        if (speed > speedTrigger && dist < proximity && !dot._inertiaApplied) {
-          dot._inertiaApplied = true;
-          gsap.killTweensOf(dot);
-
-          const pushX = dot.cx - pr.x + vx * 0.005;
-          const pushY = dot.cy - pr.y + vy * 0.005;
-
-          gsap.to(dot, {
-            inertia: { xOffset: pushX, yOffset: pushY, resistance },
-            onComplete: () => {
-              gsap.to(dot, {
-                xOffset: 0,
-                yOffset: 0,
-                duration: returnDuration,
-                ease: "elastic.out(1,0.75)",
-              });
-              dot._inertiaApplied = false;
-            },
-          });
+        if (dist < proximity && !dot.active) {
+          // Direction from pointer to dot + a small velocity nudge
+          const nx = (dot.cx - pr.x) / (dist || 1);
+          const ny = (dot.cy - pr.y) / (dist || 1);
+          const pushX = nx + vx * 0.0004;
+          const pushY = ny + vy * 0.0004;
+          kickDot(dot, pushX, pushY, 0.4);
         }
       }
     };
@@ -318,26 +380,12 @@ export function DotGrid({
 
       for (const dot of dotsRef.current) {
         const dist = Math.hypot(dot.cx - cx, dot.cy - cy);
-        if (dist < shockRadius && !dot._inertiaApplied) {
-          dot._inertiaApplied = true;
-          gsap.killTweensOf(dot);
-
+        if (dist < shockRadius) {
           const falloff = Math.max(0, 1 - dist / shockRadius);
-          const pushX = (dot.cx - cx) * shockStrength * falloff;
-          const pushY = (dot.cy - cy) * shockStrength * falloff;
-
-          gsap.to(dot, {
-            inertia: { xOffset: pushX, yOffset: pushY, resistance },
-            onComplete: () => {
-              gsap.to(dot, {
-                xOffset: 0,
-                yOffset: 0,
-                duration: returnDuration,
-                ease: "elastic.out(1,0.75)",
-              });
-              dot._inertiaApplied = false;
-            },
-          });
+          // Direction: radially away from click point
+          const pushX = (dot.cx - cx) * shockStrength * falloff * 0.012;
+          const pushY = (dot.cy - cy) * shockStrength * falloff * 0.012;
+          kickDot(dot, pushX, pushY, 1);
         }
       }
     };
@@ -351,15 +399,7 @@ export function DotGrid({
       window.removeEventListener("mousemove", throttledMove);
       window.removeEventListener("click", onClick);
     };
-  }, [
-    maxSpeed,
-    speedTrigger,
-    proximity,
-    resistance,
-    returnDuration,
-    shockRadius,
-    shockStrength,
-  ]);
+  }, [maxSpeed, speedTrigger, proximity, shockRadius, shockStrength]);
 
   return (
     <div
