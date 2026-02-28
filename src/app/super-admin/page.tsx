@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Separator } from "@/components/ui/separator";
@@ -26,7 +26,6 @@ import {
   TrendingUp,
   Brain,
   Activity,
-  ExternalLink,
 } from "lucide-react";
 import type { Department } from "@/types/database";
 
@@ -171,9 +170,7 @@ export default async function SuperAdminDashboard() {
       .select("*", { count: "exact", head: true })
       .eq("status", "rejected"),
     adminClient.from("users").select("*", { count: "exact", head: true }),
-    adminClient
-      .from("resolutions")
-      .select("*", { count: "exact", head: true }),
+    adminClient.from("resolutions").select("*", { count: "exact", head: true }),
     adminClient.from("departments").select("id, name, description"),
     adminClient
       .from("complaints")
@@ -221,13 +218,11 @@ export default async function SuperAdminDashboard() {
       : 0;
 
   // ── Per-department stats ───────────────────────────────────────────────────
-  const allComplaintsForDept = (
-    (allComplaintsForDeptData ?? []) as {
-      department_id: string | null;
-      status: string;
-      ai_confidence_score: number | null;
-    }[]
-  );
+  const allComplaintsForDept = (allComplaintsForDeptData ?? []) as {
+    department_id: string | null;
+    status: string;
+    ai_confidence_score: number | null;
+  }[];
 
   const deptStatsMap = new Map<string, DepartmentStat>();
 
@@ -685,7 +680,9 @@ export default async function SuperAdminDashboard() {
                             {deptNameMap[u.department_id]}
                           </span>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-xs text-muted-foreground">
+                            —
+                          </span>
                         )}
                       </div>
                       <div className="md:col-span-1">

@@ -3,20 +3,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 // ── Generic helpers ────────────────────────────────────────────────────────────
 
-function StatCardSkeleton() {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <Skeleton className="h-4 w-28 mb-2" />
-        <Skeleton className="h-9 w-16" />
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="h-3 w-36" />
-      </CardContent>
-    </Card>
-  );
-}
-
 function ComplaintRowSkeleton() {
   return (
     <div className="flex items-center justify-between p-4 border border-border rounded-lg">
@@ -38,50 +24,28 @@ function ComplaintRowSkeleton() {
 
 export function DashboardPageSkeleton() {
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1.5">
-              <Skeleton className="h-7 w-48" />
-              <Skeleton className="h-4 w-32" />
-            </div>
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-9 w-9 rounded-md" />
-              <Skeleton className="h-9 w-36 rounded-md" />
-              <Skeleton className="h-9 w-20 rounded-md" />
-            </div>
+    <div className="fixed inset-0 overflow-hidden">
+      {/* Map background simulation */}
+      <Skeleton className="absolute inset-0 rounded-none" />
+
+      {/* Floating header */}
+      <header className="absolute top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/60">
+        <div className="px-4 sm:px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-4 rounded-full" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-8 rounded-md" />
+            <Skeleton className="h-8 w-28 rounded-md" />
+            <Skeleton className="h-8 w-16 rounded-md" />
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <StatCardSkeleton key={i} />
-          ))}
-        </div>
-
-        {/* Recent complaints */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="space-y-1.5">
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-4 w-56" />
-              </div>
-              <Skeleton className="h-9 w-20 rounded-md" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <ComplaintRowSkeleton key={i} />
-            ))}
-          </CardContent>
-        </Card>
-      </main>
+      {/* Sidebar pull-tab hint */}
+      <div className="absolute top-1/2 -translate-y-1/2 left-0 z-30 w-6 h-20 bg-background/90 backdrop-blur-md border-y border-r border-border rounded-r-xl shadow-lg" />
     </div>
   );
 }
@@ -220,54 +184,28 @@ export function ComplaintDetailSkeleton() {
 
 export function AdminDashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-card border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1.5">
-              <Skeleton className="h-7 w-64" />
-              <Skeleton className="h-4 w-48" />
-            </div>
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-6 w-24 rounded-full" />
-              <Skeleton className="h-9 w-9 rounded-md" />
-              <Skeleton className="h-9 w-20 rounded-md" />
-            </div>
+    <div className="fixed inset-0 overflow-hidden">
+      {/* Map background simulation */}
+      <Skeleton className="absolute inset-0 rounded-none" />
+
+      {/* Floating header */}
+      <header className="absolute top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/60">
+        <div className="px-4 sm:px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-4 rounded-full" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-24 rounded-full hidden sm:block" />
+            <Skeleton className="h-8 w-8 rounded-md" />
+            <Skeleton className="h-8 w-16 rounded-md" />
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="pb-2">
-                <Skeleton className="h-4 w-24 mb-1" />
-                <Skeleton className="h-9 w-12" />
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
-
-        {/* Recent complaints */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="space-y-1.5">
-                <Skeleton className="h-5 w-36" />
-                <Skeleton className="h-4 w-52" />
-              </div>
-              <Skeleton className="h-9 w-20 rounded-md" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <ComplaintRowSkeleton key={i} />
-            ))}
-          </CardContent>
-        </Card>
-      </main>
+      {/* Sidebar pull-tab hint */}
+      <div className="absolute top-1/2 -translate-y-1/2 left-0 z-30 w-6 h-20 bg-background/90 backdrop-blur-md border-y border-r border-border rounded-r-xl shadow-lg" />
     </div>
   );
 }
@@ -356,7 +294,10 @@ export function AdminComplaintDetailSkeleton() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className={`h-3 ${i % 3 === 2 ? "w-2/3" : "w-full"}`} />
+                  <Skeleton
+                    key={i}
+                    className={`h-3 ${i % 3 === 2 ? "w-2/3" : "w-full"}`}
+                  />
                 ))}
               </CardContent>
             </Card>
@@ -465,7 +406,10 @@ export function SuperAdminDashboardSkeleton() {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="space-y-2 p-4 rounded-lg border border-border">
+                <div
+                  key={i}
+                  className="space-y-2 p-4 rounded-lg border border-border"
+                >
                   <Skeleton className="h-4 w-28" />
                   <Skeleton className="h-7 w-16" />
                   <Skeleton className="h-2 w-full rounded-full" />
@@ -483,7 +427,10 @@ export function SuperAdminDashboardSkeleton() {
           </CardHeader>
           <CardContent className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center justify-between p-3 border border-border rounded-lg">
+              <div
+                key={i}
+                className="flex items-center justify-between p-3 border border-border rounded-lg"
+              >
                 <div className="space-y-1">
                   <Skeleton className="h-4 w-36" />
                   <Skeleton className="h-3 w-24" />
@@ -517,7 +464,10 @@ export function SuperAdminDashboardSkeleton() {
             </CardHeader>
             <CardContent className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 border border-border rounded-lg"
+                >
                   <div className="flex items-center gap-3">
                     <Skeleton className="h-8 w-8 rounded-full" />
                     <div className="space-y-1">
